@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: movie-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: movie-db
+  template:
+    metadata:
+      labels:
+        app: movie-db
+    spec:
+      containers:
+      - name: movie-db
+        image: {{ .Values.movieDB.image.repository }}:{{ .Values.movieDB.image.tag }}
+        env:
+        - name: POSTGRES_DB
+          value: {{ .Values.movieDB.database.name }}
+        - name: POSTGRES_PASSWORD
+          value: {{ .Values.movieDB.database.password }}
+        - name: POSTGRES_USER
+          value: {{ .Values.movieDB.database.user }}
+        volumeMounts:
+        - mountPath: /var/lib/postgresql/data/
+          name: postgres-data-movie
+      volumes:
+      - name: postgres-data-movie
+        persistentVolumeClaim:
+          claimName: postgres-movie-pv
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-movie-pv
+  namespace: {{ .Values.namespace }}
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.movieDB.persistence.storage }}
+  storageClassName: local-path 
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: movie-db-service
+  namespace: {{ .Values.namespace }}
+spec:
+  selector:
+    app: movie-db-service
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432

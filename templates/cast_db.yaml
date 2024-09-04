@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cast-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cast-db
+  template:
+    metadata:
+      labels:
+        app: cast-db
+    spec:
+      containers:
+      - name: cast-db
+        image: postgres:12.1-alpine
+        env:
+        - name: POSTGRES_DB
+          value: {{ .Values.castDB.database.name }}
+        - name: POSTGRES_PASSWORD
+          value: {{ .Values.castDB.database.password }}
+        - name: POSTGRES_USER
+          value: {{ .Values.castDB.database.user }}
+        volumeMounts:
+        - mountPath: /var/lib/postgresql/data/
+          name: postgres-data-cast
+      volumes:
+      - name: postgres-data-cast
+        persistentVolumeClaim:
+          claimName: postgres-cast-pv
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-cast-pv
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+  storageClassName: local-path 
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: cast-db-service
+  namespace: {{ .Values.namespace }}
+spec:
+  selector:
+    app: cast-db-service
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
+

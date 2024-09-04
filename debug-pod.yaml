@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: debug-pod
+  namespace: test
+spec:
+  containers:
+  - name: debug-container
+    image: busybox
+    command: ["sleep", "3600"]
+    volumeMounts:
+    - name: nginx-claim0
+      mountPath: /mnt/nginx
+  volumes:
+  - name: nginx-claim0
+    persistentVolumeClaim:
+      claimName: nginx-claim0

@@ -1,0 +1,82 @@
+# ingress:
+#   enabled: true
+#   className: traefik
+#   host: aboubakar.fr
+#   paths:
+#     castService:
+#       path: /api/v1/casts
+#       service: cast-service
+#       port: 8000
+#     movieService:
+#       path: /api/v1/movies
+#       service: movie-service
+#       port: 8000
+
+nginx:
+  name: nginx
+  image: nginx:latest
+  replicas: 1
+  autoscaling:
+    enabled: false
+  service:
+    type: NodePort
+    port: 80
+    targetPort: 8080
+
+# Variables globales
+global:
+  imageRegistry: ""
+  imagePullSecrets:
+    - name: my-registry-secret
+
+# Service de Cast
+castService:
+  image:
+    repository: greglebreton/cast-service
+    tag: latest
+  replicaCount: 1
+  databaseURI: postgresql://cast_db_username:cast_db_password@cast-db/cast_db_dev
+  persistence:
+    storage: 100Mi
+
+# Base de données Cast
+castDB:
+  image:
+    repository: postgres
+    tag: 12.1-alpine
+  replicaCount: 1
+  database:
+    name: cast_db_dev
+    user: cast_db_username
+    password: cast_db_password
+  persistence:
+    storage: 100Mi
+
+# Service de Film
+movieService:
+  image:
+    repository: greglebreton/movie-service
+    tag: latest
+  replicaCount: 1
+  castServiceHostURL: http://cast-service:8000/api/v1/casts/
+  databaseURI: postgresql://movie_db_username:movie_db_password@movie-db/movie_db_dev
+  persistence:
+    storage: 100Mi
+
+# Base de données Film
+movieDB:
+  image:
+    repository: postgres
+    tag: 12.1-alpine
+  replicaCount: 1
+  database:
+    name: movie_db_dev
+    user: movie_db_username
+    password: movie_db_password
+  persistence:
+    storage: 100Mi
+
+# Configuration du Service test connection
+service:
+  type: ClusterIP
+  port: 80

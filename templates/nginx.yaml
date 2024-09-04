@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.nginx.name }}
+  labels:
+    name: {{ .Values.nginx.name }}
+spec:
+  {{- if not .Values.nginx.autoscaling.enabled }}
+  replicas: {{ .Values.nginx.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      name: {{ .Values.nginx.name }}
+  template:
+    metadata:
+      labels:
+        name: {{ .Values.nginx.name }}
+    spec:
+      volumes:
+        - name: nginx-conf
+          configMap:
+            name: nginx-conf
+            defaultMode: 484
+      containers:
+        - name: {{ .Values.nginx.name }}
+          image: "{{ .Values.nginx.image }}"
+          ports:
+            - containerPort: {{ .Values.nginx.service.port }}
+              protocol: TCP
+          # volumeMounts:
+          #   - name: nginx-conf
+          #     mountPath: /etc/nginx/conf.d/
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.nginx.name }}
+  labels:
+    name: {{ .Values.nginx.name }}
+spec:
+  type: {{ .Values.nginx.service.type }}
+  ports:
+    - port: {{ .Values.nginx.service.port }}
+      targetPort: {{ .Values.nginx.service.port }}
+  selector:
+    name: {{ .Values.nginx.name }}

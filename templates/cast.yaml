@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cast-service
+spec:
+  replicas: {{ .Values.castService.replicaCount }}
+  selector:
+    matchLabels:
+      app: cast-service
+  template:
+    metadata:
+      labels:
+        app: cast-service
+    spec:
+      imagePullSecrets:
+{{- range .Values.global.imagePullSecrets }}
+      - name: {{ .name }}
+{{- end }}
+      containers:
+      - name: cast-service
+        image: {{ .Values.castService.image.repository }}:{{ .Values.castService.image.tag }}
+        command: ["uvicorn"]
+        args: ["app.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000"]
+        env:
+        - name: DATABASE_URI
+          value: {{ .Values.castService.databaseURI }}
+        ports:
+        - containerPort: 8000
+        volumeMounts:
+        - mountPath: /app/
+          name: cast-service-claim0
+      volumes:
+      - name: cast-service-claim0
+        persistentVolumeClaim:
+          claimName: cast-service-claim0
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cast-service-claim0
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.castService.persistence.storage }}
+  storageClassName: local-path 
+  
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cast-service
+  namespace: {{ .Values.namespace }}
+spec:
+  selector:
+    app: cast-service
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
